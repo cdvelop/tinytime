@@ -9,6 +9,11 @@ import (
 	"github.com/cdvelop/tinystring"
 )
 
+// NewTimeProvider retorna la implementación correcta según el entorno de compilación.
+func NewTimeProvider() TimeProvider {
+	return timeServer{}
+}
+
 // timeServer implementa TimeProvider para Go estándar
 type timeServer struct{}
 
@@ -42,9 +47,4 @@ func (timeServer) UnixNanoToTime(input any) string {
 	unixSeconds := unixNano / 1e9
 	t := time.Unix(unixSeconds, 0)
 	return t.Format("15:04:05")
-}
-
-// NewTimeProvider retorna la implementación correcta según el entorno de compilación.
-func NewTimeProvider() TimeProvider {
-	return timeServer{}
 }
