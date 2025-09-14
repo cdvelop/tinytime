@@ -102,3 +102,10 @@ go test -tags=wasm
 ## Dependencies
 
 - `github.com/cdvelop/tinystring` (for string parsing in WASM)
+
+---
+## [Contributing](https://github.com/cdvelop/cdvelop/blob/main/CONTRIBUTING.md)
+
+## License
+
+[MIT](LICENSE).

@@ -35,7 +35,7 @@ func (timeClient) UnixSecondsToDate(unixSeconds int64) (date string) {
 	date = dateJSValue.String()
 
 	// Formatea la cadena de fecha a "2006-01-02 15:04"
-	date = date[0:10] + " x " + date[11:16]
+	date = date[0:10] + " " + date[11:16]
 
 	return
 }
