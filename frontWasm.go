@@ -35,33 +35,15 @@ func (timeClient) UnixSecondsToDate(unixSeconds int64) (date string) {
 	date = dateJSValue.String()
 
 	// Formatea la cadena de fecha a "2006-01-02 15:04"
-	date = date[0:10] + " " + date[11:16]
+	date = date[0:10] + " x " + date[11:16]
 
 	return
 }
 
 func (timeClient) UnixNanoToTime(input any) string {
-	var unixNano int64
-	switch v := input.(type) {
-	case int64:
-		unixNano = v
-	case int:
-		unixNano = int64(v)
-	case float64:
-		unixNano = int64(v)
-	case string:
-		parsed := int64(0)
-		multiplier := int64(1)
-		for i := len(v) - 1; i >= 0; i-- {
-			if v[i] >= '0' && v[i] <= '9' {
-				parsed += int64(v[i]-'0') * multiplier
-				multiplier *= 10
-			} else {
-				return ""
-			}
-		}
-		unixNano = parsed
-	default:
+
+	unixNano, err := Convert(input).Int64()
+	if err != nil {
 		return ""
 	}
 

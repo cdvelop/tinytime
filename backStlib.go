@@ -27,23 +27,12 @@ func (timeServer) UnixSecondsToDate(unixSeconds int64) string {
 }
 
 func (timeServer) UnixNanoToTime(input any) string {
-	var unixNano int64
-	switch v := input.(type) {
-	case int64:
-		unixNano = v
-	case int:
-		unixNano = int64(v)
-	case float64:
-		unixNano = int64(v)
-	case string:
-		val, err := tinystring.Convert(v).Int64()
-		if err != nil {
-			return ""
-		}
-		unixNano = val
-	default:
+
+	unixNano, err := tinystring.Convert(input).Int64()
+	if err != nil {
 		return ""
 	}
+
 	unixSeconds := unixNano / 1e9
 	t := time.Unix(unixSeconds, 0)
 	return t.Format("15:04:05")
