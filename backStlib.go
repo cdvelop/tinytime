@@ -11,7 +11,7 @@ import (
 
 // NewTimeProvider retorna la implementación correcta según el entorno de compilación.
 func NewTimeProvider() TimeProvider {
-	return timeServer{}
+	return &timeServer{}
 }
 
 // timeServer implementa TimeProvider para Go estándar
@@ -22,8 +22,7 @@ func (timeServer) UnixNano() int64 {
 }
 
 func (timeServer) UnixSecondsToDate(unixSeconds int64) string {
-	t := time.Unix(unixSeconds, 0)
-	return t.Format("2006-01-02 15:04")
+	return time.Unix(unixSeconds, 0).UTC().Format("2006-01-02 15:04")
 }
 
 func (timeServer) UnixNanoToTime(input any) string {
@@ -34,6 +33,6 @@ func (timeServer) UnixNanoToTime(input any) string {
 	}
 
 	unixSeconds := unixNano / 1e9
-	t := time.Unix(unixSeconds, 0)
-	return t.Format("15:04:05")
+
+	return time.Unix(unixSeconds, 0).Format("15:04:05")
 }

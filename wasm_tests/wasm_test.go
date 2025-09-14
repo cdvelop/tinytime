@@ -175,6 +175,21 @@ func TestWasmUnixNanoToTimeEdgeCases(t *testing.T) {
 	}
 }
 
+func TestWasmUnixNanoToTimeSingleDigitHour(t *testing.T) {
+	tp := tinytime.NewTimeProvider()
+
+	// Timestamp for 01:25:34 (subtract 16 hours from testUnixNano)
+	singleDigitNano := testUnixNano - 16*3600*1e9
+	result := tp.UnixNanoToTime(singleDigitNano)
+	expected := "01:25:34"
+
+	if result != expected {
+		t.Errorf("UnixNanoToTime(%d) = %s; want %s", singleDigitNano, result, expected)
+	}
+
+	t.Logf("Single digit hour test: %s", result)
+}
+
 func TestWasmTimeProviderConsistency(t *testing.T) {
 	tp1 := tinytime.NewTimeProvider()
 	tp2 := tinytime.NewTimeProvider()
