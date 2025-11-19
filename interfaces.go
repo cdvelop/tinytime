@@ -1,21 +1,54 @@
 package tinytime
 
-// TimeProvider define la interfaz para utilidades de tiempo
-// implementada tanto para Go estándar como para WASM/JS.
+// TimeProvider defines the interface for time utilities, implemented for both standard Go and WASM/JS environments.
 type TimeProvider interface {
+	// --- Existing Methods ---
+
 	// UnixNano retrieves the current Unix timestamp in nanoseconds.
-	// It creates a new JavaScript Date object, gets the timestamp in milliseconds,
-	// converts it to nanoseconds, and returns the result as an int64.
-	// eg: 1624397134562544800
+	// e.g., 1624397134562544800
 	UnixNano() int64
-	//	ts := int64(1609459200) // January 1, 2021 00:00:00 UTC
-	//	formattedDate := UnixSecondsToDate(ts)
-	//	println(formattedDate) // Output: "2021-01-01 00:00:00"
+
+	// UnixSecondsToDate converts a Unix timestamp in seconds to a formatted date-time string: "2006-01-02 15:04".
+	// e.g., 1609459200 -> "2021-01-01 00:00"
 	UnixSecondsToDate(int64) string
-	// UnixNanoToTime converts a Unix timestamp in nanoseconds to a formatted time string.
-	// Format: "15:04:05" (hour:minute:second)
-	// It accepts a parameter of type any and attempts to convert it to an int64 Unix timestamp in nanoseconds.
-	// eg: 1624397134562544800 -> "15:32:14"
-	// supported types: int64, int, float64, string
+
+	// UnixNanoToTime converts a Unix timestamp in nanoseconds to a formatted time string: "15:04:05".
+	// It accepts various numeric types (int64, int, float64, string).
+	// e.g., 1624397134562544800 -> "15:32:14"
 	UnixNanoToTime(any) string
+
+	// --- New Methods ---
+
+	// FormatDate formats a value into a date string: "YYYY-MM-DD".
+	// Accepts: int64 (UnixNano), string ("2024-01-15").
+	FormatDate(value any) string
+
+	// FormatTime formats a value into a time string.
+	// Accepts: int64 (UnixNano) -> "HH:MM:SS", int16 (minutes) -> "HH:MM", string ("08:30").
+	FormatTime(value any) string
+
+	// FormatDateTime formats a value into a date-time string: "YYYY-MM-DD HH:MM:SS".
+	// Accepts: int64 (UnixNano), string ("2024-01-15 08:30:45").
+	FormatDateTime(value any) string
+
+	// ParseDate parses a date string ("YYYY-MM-DD") into a UnixNano timestamp (at midnight UTC).
+	ParseDate(dateStr string) (int64, error)
+
+	// ParseTime parses a time string ("HH:MM" or "HH:MM:SS") into minutes since midnight.
+	ParseTime(timeStr string) (int16, error)
+
+	// ParseDateTime combines date and time strings into a single UnixNano timestamp (UTC).
+	ParseDateTime(dateStr, timeStr string) (int64, error)
+
+	// IsToday checks if the given UnixNano timestamp is today (UTC).
+	IsToday(nano int64) bool
+
+	// IsPast checks if the given UnixNano timestamp is in the past.
+	IsPast(nano int64) bool
+
+	// IsFuture checks if the given UnixNano timestamp is in the future.
+	IsFuture(nano int64) bool
+
+	// DaysBetween calculates the number of full days between two UnixNano timestamps.
+	DaysBetween(nano1, nano2 int64) int
 }

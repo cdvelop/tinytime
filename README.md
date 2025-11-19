@@ -9,21 +9,32 @@ A minimal, portable time utility for Go and TinyGo with WebAssembly support. Aut
 
 ```go
 import "github.com/cdvelop/tinytime"
+import "fmt"
 
 func main() {
     tp := tinytime.NewTimeProvider()
 
     // Get current Unix timestamp in nanoseconds
     nano := tp.UnixNano()
-    println("Current time:", nano)
+    fmt.Println("Current time:", nano)
 
-    // Convert Unix seconds to formatted date
-    date := tp.UnixSecondsToDate(1624397134)
-    println("Date:", date) // "2021-06-22 21:25"
+    // Format dates and times
+    date := tp.FormatDate(nano)
+    fmt.Println("Date:", date) // "2024-01-15"
 
-    // Convert Unix nanoseconds to time
-    time := tp.UnixNanoToTime(nano)
-    println("Time:", time) // "15:32:14"
+    timeStr := tp.FormatTime(int16(510)) // 8:30 in minutes
+    fmt.Println("Time:", timeStr) // "08:30"
+
+    // Parse date and time strings
+    parsedNano, err := tp.ParseDate("2024-01-15")
+    if err != nil {
+        panic(err)
+    }
+    fmt.Println("Parsed Nano:", parsedNano)
+
+    // Perform date calculations
+    isToday := tp.IsToday(nano)
+    fmt.Println("Is Today?", isToday)
 }
 ```
 
@@ -35,73 +46,120 @@ Creates a time provider instance. Automatically selects the appropriate implemen
 - **WASM**: Uses JavaScript Date APIs (smaller binaries)
 - **Standard Go**: Uses `time` package
 
-### `UnixNano() int64`
+---
 
-Returns current Unix timestamp in nanoseconds.
+### Display Formatting
 
-```go
-nano := tp.UnixNano()
-// Example: 1624397134562544800
-```
-
-### `UnixSecondsToDate(seconds int64) string`
-
-Converts Unix timestamp (seconds) to formatted date string.
+#### `FormatDate(value any) string`
+Formats a value into a date string: "YYYY-MM-DD".
+- **`int64`**: UnixNano timestamp.
+- **`string`**: Valid date string (passthrough).
 
 ```go
-date := tp.UnixSecondsToDate(1624397134)
-// Returns: "2021-06-22 21:25"
+date := tp.FormatDate(1705306200000000000) // "2024-01-15"
 ```
 
-### `UnixNanoToTime(input any) string`
-
-Converts Unix timestamp (nanoseconds) to time string. Accepts multiple input types.
+#### `FormatTime(value any) string`
+Formats a value into a time string.
+- **`int64`**: UnixNano timestamp ("HH:MM:SS").
+- **`int16`**: Minutes since midnight ("HH:MM").
+- **`string`**: Valid time string (passthrough).
 
 ```go
-// All of these work:
-time1 := tp.UnixNanoToTime(int64(1624397134000000000))
-time2 := tp.UnixNanoToTime(1624397134000000000) // int
-time3 := tp.UnixNanoToTime("1624397134000000000") // string
-// Returns: "17:25:34"
+timeStr := tp.FormatTime(int16(510)) // "08:30"
 ```
 
-**Supported input types:** `int64`, `int`, `float64`, `string`
+#### `FormatDateTime(value any) string`
+Formats a value into a date-time string: "YYYY-MM-DD HH:MM:SS".
+- **`int64`**: UnixNano timestamp.
+- **`string`**: Valid date-time string (passthrough).
+
+```go
+dateTime := tp.FormatDateTime(1705306200000000000) // "2024-01-15 08:30:00"
+```
+
+---
+
+### Parsing
+
+#### `ParseDate(dateStr string) (int64, error)`
+Parses a date string ("YYYY-MM-DD") into a UnixNano timestamp at midnight UTC.
+
+```go
+nano, err := tp.ParseDate("2024-01-15")
+```
+
+#### `ParseTime(timeStr string) (int16, error)`
+Parses a time string ("HH:MM" or "HH:MM:SS") into minutes since midnight.
+
+```go
+minutes, err := tp.ParseTime("08:30") // 510
+```
+
+#### `ParseDateTime(dateStr, timeStr string) (int64, error)`
+Combines date and time strings into a single UnixNano timestamp (UTC).
+
+```go
+nano, err := tp.ParseDateTime("2024-01-15", "08:30")
+```
+
+---
+
+### Date Utilities
+
+#### `IsToday(nano int64) bool`
+Checks if the given UnixNano timestamp is today.
+
+#### `IsPast(nano int64) bool`
+Checks if the given UnixNano timestamp is in the past.
+
+#### `IsFuture(nano int64) bool`
+Checks if the given UnixNano timestamp is in the future.
+
+#### `DaysBetween(nano1, nano2 int64) int`
+Calculates the number of full days between two UnixNano timestamps.
+
+---
+
+### Legacy Methods
+
+#### `UnixNano() int64`
+Returns the current Unix timestamp in nanoseconds.
+
+#### `UnixSecondsToDate(seconds int64) string`
+Converts Unix timestamp (seconds) to a formatted date-time string ("YYYY-MM-DD HH:MM").
+
+#### `UnixNanoToTime(input any) string`
+Converts Unix timestamp (nanoseconds) to a time string ("HH:MM:SS").
+
+---
 
 ## WebAssembly Usage
 
-When compiled for WebAssembly (`GOOS=js GOARCH=wasm`), tinytime automatically uses JavaScript's native Date APIs instead of bundling Go's time package. This results in significantly smaller binary sizes.
+When compiled for WebAssembly (`GOOS=js GOARCH=wasm`), tinytime automatically uses JavaScript's native Date APIs instead of bundling Go's `time` package.
 
 ```bash
 # Build for WebAssembly
 GOOS=js GOARCH=wasm go build -o app.wasm .
 
 # Run tests in browser
-go install github.com/cdvelop/wasmtest@latest
-wasmtest.RunTests("./tests", nil, 5*time.Minute)
+go test -tags=wasm
 ```
 
 ## Testing
 
 Run standard tests:
 ```bash
-go test
+go test ./...
 ```
 
-Run WebAssembly tests in browser:
+Run WebAssembly tests:
 ```bash
-go test -tags=wasm
+GOOS=js GOARCH=wasm go test ./...
 ```
-
-## Use Cases
-
-- **Frontend applications** where binary size matters
-- **TinyGo projects** requiring time utilities
-- **WebAssembly modules** needing timestamp functionality
-- **Cross-platform libraries** that work in both Go and browser environments
 
 ## Dependencies
-
-- `github.com/cdvelop/tinystring` (for string parsing in WASM)
+- `github.com/cdvelop/tinystring`
 
 ---
 ## [Contributing](https://github.com/cdvelop/cdvelop/blob/main/CONTRIBUTING.md)
