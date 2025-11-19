@@ -77,6 +77,21 @@ func (tc *timeClient) FormatDateTime(value any) string {
 	return ""
 }
 
+func (tc *timeClient) FormatDateTimeShort(value any) string {
+	switch v := value.(type) {
+	case int64:
+		jsDate := tc.dateCtor.New(float64(v) / 1e6)
+		iso := jsDate.Call("toISOString").String()
+		return iso[0:10] + " " + iso[11:16]
+	case string:
+		// Validate short datetime format: YYYY-MM-DD HH:MM (16 chars)
+		if len(v) == 16 && v[4] == '-' && v[7] == '-' && v[10] == ' ' && v[13] == ':' {
+			return v
+		}
+	}
+	return ""
+}
+
 func (tc *timeClient) ParseDate(dateStr string) (int64, error) {
 	// Validate format: YYYY-MM-DD (10 chars with dashes at positions 4 and 7)
 	if len(dateStr) != 10 || dateStr[4] != '-' || dateStr[7] != '-' {

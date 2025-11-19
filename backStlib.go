@@ -4,8 +4,9 @@
 package tinytime
 
 import (
-	. "github.com/cdvelop/tinystring"
 	"time"
+
+	. "github.com/cdvelop/tinystring"
 )
 
 // NewTimeProvider returns the correct implementation based on the build environment.
@@ -54,6 +55,18 @@ func (ts *timeServer) FormatDateTime(value any) string {
 		return time.Unix(0, v).UTC().Format("2006-01-02 15:04:05")
 	case string:
 		if _, err := time.Parse("2006-01-02 15:04:05", v); err == nil {
+			return v
+		}
+	}
+	return ""
+}
+
+func (ts *timeServer) FormatDateTimeShort(value any) string {
+	switch v := value.(type) {
+	case int64:
+		return time.Unix(0, v).UTC().Format("2006-01-02 15:04")
+	case string:
+		if _, err := time.Parse("2006-01-02 15:04", v); err == nil {
 			return v
 		}
 	}

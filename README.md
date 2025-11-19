@@ -75,7 +75,16 @@ Formats a value into a date-time string: "YYYY-MM-DD HH:MM:SS".
 - **`string`**: Valid date-time string (passthrough).
 
 ```go
-dateTime := tp.FormatDateTime(1705306200000000000) // "2024-01-15 08:30:00"
+dateTime := tp.FormatDateTime(1705307400000000000) // "2024-01-15 08:30:00"
+```
+
+#### `FormatDateTimeShort(value any) string`
+Formats a value into a short date-time string: "YYYY-MM-DD HH:MM" (without seconds).
+- **`int64`**: UnixNano timestamp.
+- **`string`**: Valid short date-time string (passthrough).
+
+```go
+dateTime := tp.FormatDateTimeShort(1705307400000000000) // "2024-01-15 08:30"
 ```
 
 ---

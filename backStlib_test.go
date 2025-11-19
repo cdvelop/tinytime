@@ -18,6 +18,7 @@ func TestAllShared(t *testing.T) {
 	t.Run("FormatDate", func(t *testing.T) { FormatDateShared(t, tp) })
 	t.Run("FormatTime", func(t *testing.T) { FormatTimeShared(t, tp) })
 	t.Run("FormatDateTime", func(t *testing.T) { FormatDateTimeShared(t, tp) })
+	t.Run("FormatDateTimeShort", func(t *testing.T) { FormatDateTimeShortShared(t, tp) })
 	t.Run("ParseDate", func(t *testing.T) { ParseDateShared(t, tp) })
 	t.Run("ParseTime", func(t *testing.T) { ParseTimeShared(t, tp) })
 	t.Run("ParseDateTime", func(t *testing.T) { ParseDateTimeShared(t, tp) })

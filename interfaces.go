@@ -18,6 +18,10 @@ type TimeProvider interface {
 	// Accepts: int64 (UnixNano), string ("2024-01-15 08:30:45").
 	FormatDateTime(value any) string
 
+	// FormatDateTimeShort formats a value into a short date-time string: "YYYY-MM-DD HH:MM" (without seconds).
+	// Accepts: int64 (UnixNano), string ("2024-01-15 08:30").
+	FormatDateTimeShort(value any) string
+
 	// ParseDate parses a date string ("YYYY-MM-DD") into a UnixNano timestamp (at midnight UTC).
 	ParseDate(dateStr string) (int64, error)
 

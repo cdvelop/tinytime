@@ -2,7 +2,6 @@ package tinytime_test
 
 import (
 	"testing"
-	"time"
 
 	"github.com/cdvelop/tinytime"
 )
@@ -79,13 +78,44 @@ func FormatDateTimeShared(t *testing.T, tp tinytime.TimeProvider) {
 	}
 
 	// Test with current time
-	currentNano := time.Now().UnixNano()
+	currentNano := tp.UnixNano()
 	result = tp.FormatDateTime(currentNano)
 	if result == "" {
 		t.Error("FormatDateTime returned empty string for current time")
 	}
 
 	t.Logf("FormatDateTime tests passed")
+}
+
+// Test FormatDateTimeShort
+func FormatDateTimeShortShared(t *testing.T, tp tinytime.TimeProvider) {
+	// Test with int64 (UnixNano timestamp)
+	nano := int64(1705307400000000000) // 2024-01-15 08:30:00 UTC
+	result := tp.FormatDateTimeShort(nano)
+	if result != "2024-01-15 08:30" {
+		t.Errorf("FormatDateTimeShort(nano) = %q, want %q", result, "2024-01-15 08:30")
+	}
+
+	// Test with valid string passthrough
+	result = tp.FormatDateTimeShort("2024-01-15 08:30")
+	if result != "2024-01-15 08:30" {
+		t.Errorf("FormatDateTimeShort(string) = %q, want %q", result, "2024-01-15 08:30")
+	}
+
+	// Test with zero timestamp (epoch)
+	result = tp.FormatDateTimeShort(int64(0))
+	if result != "1970-01-01 00:00" {
+		t.Errorf("FormatDateTimeShort(0) = %q, want %q", result, "1970-01-01 00:00")
+	}
+
+	// Test with current timestamp (should be 16 chars)
+	currentNano := tp.UnixNano()
+	result = tp.FormatDateTimeShort(currentNano)
+	if len(result) != 16 {
+		t.Errorf("FormatDateTimeShort(current) length = %d, want 16", len(result))
+	}
+
+	t.Logf("FormatDateTimeShort tests passed")
 }
 
 // Test UnixNano
@@ -98,7 +128,7 @@ func UnixNanoShared(t *testing.T, tp tinytime.TimeProvider) {
 	}
 
 	// Test that timestamp is recent (within last 10 seconds to allow for clock drift)
-	now := time.Now().UnixNano()
+	now := tp.UnixNano()
 	diff := nano - now
 	if diff < 0 {
 		diff = -diff
