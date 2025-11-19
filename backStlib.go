@@ -7,8 +7,6 @@ import (
 	"fmt"
 	"strings"
 	"time"
-
-	"github.com/cdvelop/tinystring"
 )
 
 // NewTimeProvider returns the correct implementation based on the build environment.
@@ -21,18 +19,6 @@ type timeServer struct{}
 
 func (ts *timeServer) UnixNano() int64 {
 	return time.Now().UTC().UnixNano()
-}
-
-func (ts *timeServer) UnixSecondsToDate(unixSeconds int64) string {
-	return time.Unix(unixSeconds, 0).UTC().Format("2006-01-02 15:04")
-}
-
-func (ts *timeServer) UnixNanoToTime(input any) string {
-	unixNano, err := tinystring.Convert(input).Int64()
-	if err != nil {
-		return ""
-	}
-	return time.Unix(0, unixNano).UTC().Format("15:04:05")
 }
 
 func (ts *timeServer) FormatDate(value any) string {
@@ -50,7 +36,7 @@ func (ts *timeServer) FormatDate(value any) string {
 func (ts *timeServer) FormatTime(value any) string {
 	switch v := value.(type) {
 	case int64: // UnixNano
-		return ts.UnixNanoToTime(v)
+		return time.Unix(0, v).UTC().Format("15:04:05")
 	case int16: // Minutes since midnight
 		hours := v / 60
 		minutes := v % 60

@@ -105,6 +105,17 @@ nano, err := tp.ParseDateTime("2024-01-15", "08:30")
 
 ---
 
+### Current Time
+
+#### `UnixNano() int64`
+Returns the current Unix timestamp in nanoseconds.
+
+```go
+nano := tp.UnixNano()
+```
+
+---
+
 ### Date Utilities
 
 #### `IsToday(nano int64) bool`
@@ -118,19 +129,6 @@ Checks if the given UnixNano timestamp is in the future.
 
 #### `DaysBetween(nano1, nano2 int64) int`
 Calculates the number of full days between two UnixNano timestamps.
-
----
-
-### Legacy Methods
-
-#### `UnixNano() int64`
-Returns the current Unix timestamp in nanoseconds.
-
-#### `UnixSecondsToDate(seconds int64) string`
-Converts Unix timestamp (seconds) to a formatted date-time string ("YYYY-MM-DD HH:MM").
-
-#### `UnixNanoToTime(input any) string`
-Converts Unix timestamp (nanoseconds) to a time string ("HH:MM:SS").
 
 ---
 
@@ -157,6 +155,8 @@ Run WebAssembly tests:
 ```bash
 GOOS=js GOARCH=wasm go test ./...
 ```
+
+For detailed browser testing instructions, see [BROWSER_TEST.md](docs/BROWSER_TEST.md).
 
 ## Dependencies
 - `github.com/cdvelop/tinystring`

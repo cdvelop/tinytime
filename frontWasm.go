@@ -27,25 +27,8 @@ func NewTimeProvider() TimeProvider {
 func (tc *timeClient) UnixNano() int64 {
 	jsDate := tc.dateCtor.New()
 	msTimestamp := jsDate.Call("getTime").Float()
-	return int64(msTimestamp * 1e6)
-}
-
-func (tc *timeClient) UnixSecondsToDate(unixSeconds int64) string {
-	jsDate := tc.dateCtor.New(float64(unixSeconds) * 1000)
-	iso := jsDate.Call("toISOString").String()
-	return iso[0:10] + " " + iso[11:16]
-}
-
-func (tc *timeClient) UnixNanoToTime(input any) string {
-	unixNano, err := Convert(input).Int64()
-	if err != nil {
-		return ""
-	}
-	jsDate := tc.dateCtor.New(float64(unixNano) / 1e6)
-	hours := jsDate.Call("getUTCHours").Int()
-	minutes := jsDate.Call("getUTCMinutes").Int()
-	seconds := jsDate.Call("getUTCSeconds").Int()
-	return Fmt("%02d:%02d:%02d", hours, minutes, seconds)
+	// Convert milliseconds to nanoseconds
+	return int64(msTimestamp) * 1000000
 }
 
 func (tc *timeClient) FormatDate(value any) string {
@@ -64,7 +47,11 @@ func (tc *timeClient) FormatDate(value any) string {
 func (tc *timeClient) FormatTime(value any) string {
 	switch v := value.(type) {
 	case int64: // UnixNano
-		return tc.UnixNanoToTime(v)
+		jsDate := tc.dateCtor.New(float64(v) / 1e6)
+		hours := jsDate.Call("getUTCHours").Int()
+		minutes := jsDate.Call("getUTCMinutes").Int()
+		seconds := jsDate.Call("getUTCSeconds").Int()
+		return Fmt("%02d:%02d:%02d", hours, minutes, seconds)
 	case int16: // Minutes since midnight
 		hours := v / 60
 		minutes := v % 60
@@ -92,12 +79,28 @@ func (tc *timeClient) FormatDateTime(value any) string {
 }
 
 func (tc *timeClient) ParseDate(dateStr string) (int64, error) {
+	// Parse using time.Parse to validate format strictly
+	_, err := time.Parse("2006-01-02", dateStr)
+	if err != nil {
+		return 0, fmt.Errorf("invalid date format: %s", dateStr)
+	}
+
 	jsDate := tc.dateCtor.New(dateStr + "T00:00:00Z")
 	if jsDate.Call("toString").String() == "Invalid Date" {
 		return 0, fmt.Errorf("invalid date format: %s", dateStr)
 	}
+
+	// Verify date components match (JS Date auto-corrects invalid dates like Feb 30)
+	year := jsDate.Call("getUTCFullYear").Int()
+	month := jsDate.Call("getUTCMonth").Int() + 1
+	day := jsDate.Call("getUTCDate").Int()
+	expected := Fmt("%04d-%02d-%02d", year, month, day)
+	if expected != dateStr {
+		return 0, fmt.Errorf("invalid date: %s (auto-corrected to %s)", dateStr, expected)
+	}
+
 	ms := jsDate.Call("getTime").Float()
-	return int64(ms * 1e6), nil
+	return int64(ms) * 1000000, nil
 }
 
 func (tc *timeClient) ParseTime(timeStr string) (int16, error) {
@@ -114,7 +117,7 @@ func (tc *timeClient) ParseDateTime(dateStr, timeStr string) (int64, error) {
 		return 0, fmt.Errorf("invalid date/time format: %s %s", dateStr, timeStr)
 	}
 	ms := jsDate.Call("getTime").Float()
-	return int64(ms * 1e6), nil
+	return int64(ms) * 1000000, nil
 }
 
 func (tc *timeClient) IsToday(nano int64) bool {

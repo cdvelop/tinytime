@@ -2,22 +2,9 @@ package tinytime
 
 // TimeProvider defines the interface for time utilities, implemented for both standard Go and WASM/JS environments.
 type TimeProvider interface {
-	// --- Existing Methods ---
-
 	// UnixNano retrieves the current Unix timestamp in nanoseconds.
 	// e.g., 1624397134562544800
 	UnixNano() int64
-
-	// UnixSecondsToDate converts a Unix timestamp in seconds to a formatted date-time string: "2006-01-02 15:04".
-	// e.g., 1609459200 -> "2021-01-01 00:00"
-	UnixSecondsToDate(int64) string
-
-	// UnixNanoToTime converts a Unix timestamp in nanoseconds to a formatted time string: "15:04:05".
-	// It accepts various numeric types (int64, int, float64, string).
-	// e.g., 1624397134562544800 -> "15:32:14"
-	UnixNanoToTime(any) string
-
-	// --- New Methods ---
 
 	// FormatDate formats a value into a date string: "YYYY-MM-DD".
 	// Accepts: int64 (UnixNano), string ("2024-01-15").

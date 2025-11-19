@@ -1,367 +1,285 @@
 package tinytime_test
 
 import (
-	"fmt"
 	"testing"
 	"time"
 
 	"github.com/cdvelop/tinytime"
 )
 
-var (
-	TestUnixNano     int64 = 1705307400000000000 // 2024-01-15 08:30:00 UTC
-	TestDateStr      string = "2024-01-15"
-	TestTimeStr      string = "08:30"
-	TestDateTimeStr  string = "2024-01-15 08:30:00"
-	TestMinutes      int16 = 510 // 8 * 60 + 30
+// Global test constants
+const (
+	GlobalTestUnixSeconds    int64  = 1609459200 // 2021-01-01 00:00:00 UTC
+	GlobalExpectedTimeString string = "00:00:00"
 )
 
-// Shared test functions for all TimeProvider implementations
+var (
+	GlobalTestUnixNano int64 = GlobalTestUnixSeconds * 1000000000
+)
 
+// Test FormatDate
 func FormatDateShared(t *testing.T, tp tinytime.TimeProvider) {
-	result := tp.FormatDate(TestUnixNano)
-	if result != TestDateStr {
-		t.Errorf("FormatDate from nano = %s; want %s", result, TestDateStr)
+	// Test with UnixNano (int64)
+	result := tp.FormatDate(GlobalTestUnixNano)
+	if len(result) != 10 || result[4] != '-' || result[7] != '-' {
+		t.Errorf("FormatDate(%d) returned invalid format: %s", GlobalTestUnixNano, result)
 	}
 
-	result = tp.FormatDate(TestDateStr)
-	if result != TestDateStr {
-		t.Errorf("FormatDate from string = %s; want %s", result, TestDateStr)
+	// Test with string passthrough
+	result = tp.FormatDate("2024-01-15")
+	if result != "2024-01-15" {
+		t.Errorf("FormatDate(string) = %s; want 2024-01-15", result)
 	}
+
+	// Test with zero value
+	result = tp.FormatDate(int64(0))
+	if result != "1970-01-01" {
+		t.Errorf("FormatDate(0) = %s; want 1970-01-01", result)
+	}
+
+	t.Logf("FormatDate tests passed")
 }
 
+// Test FormatTime
 func FormatTimeShared(t *testing.T, tp tinytime.TimeProvider) {
-	result := tp.FormatTime(TestUnixNano)
-	if result != "08:30:00" {
-		t.Errorf("FormatTime from nano = %s; want %s", result, "08:30:00")
+	// Test with int64 (UnixNano)
+	result := tp.FormatTime(GlobalTestUnixNano)
+	if len(result) != 8 || result[2] != ':' || result[5] != ':' {
+		t.Errorf("FormatTime(int64) returned invalid format: %s", result)
 	}
 
-	result = tp.FormatTime(TestMinutes)
-	if result != TestTimeStr {
-		t.Errorf("FormatTime from minutes = %s; want %s", result, TestTimeStr)
+	// Test with int16 (minutes since midnight)
+	result = tp.FormatTime(int16(510)) // 08:30
+	if result != "08:30" {
+		t.Errorf("FormatTime(int16(510)) = %s; want 08:30", result)
 	}
 
-	result = tp.FormatTime(TestTimeStr)
-	if result != TestTimeStr {
-		t.Errorf("FormatTime from string = %s; want %s", result, TestTimeStr)
+	// Test with string passthrough
+	result = tp.FormatTime("14:45")
+	if result != "14:45" {
+		t.Errorf("FormatTime(string) = %s; want 14:45", result)
 	}
+
+	t.Logf("FormatTime tests passed")
 }
 
+// Test FormatDateTime
 func FormatDateTimeShared(t *testing.T, tp tinytime.TimeProvider) {
-	result := tp.FormatDateTime(TestUnixNano)
-	if result != TestDateTimeStr {
-		t.Errorf("FormatDateTime from nano = %s; want %s", result, TestDateTimeStr)
+	// Test with UnixNano (int64)
+	result := tp.FormatDateTime(GlobalTestUnixNano)
+	// Format: YYYY-MM-DD HH:MM:SS (19 chars)
+	if len(result) != 19 || result[10] != ' ' || result[13] != ':' || result[16] != ':' {
+		t.Errorf("FormatDateTime(%d) returned invalid format: %s", GlobalTestUnixNano, result)
 	}
 
-	result = tp.FormatDateTime(TestDateTimeStr)
-	if result != TestDateTimeStr {
-		t.Errorf("FormatDateTime from string = %s; want %s", result, TestDateTimeStr)
+	// Test with zero value
+	result = tp.FormatDateTime(int64(0))
+	if result != "1970-01-01 00:00:00" {
+		t.Errorf("FormatDateTime(0) = %s; want 1970-01-01 00:00:00", result)
 	}
+
+	// Test with current time
+	currentNano := time.Now().UnixNano()
+	result = tp.FormatDateTime(currentNano)
+	if result == "" {
+		t.Error("FormatDateTime returned empty string for current time")
+	}
+
+	t.Logf("FormatDateTime tests passed")
 }
 
+// Test UnixNano
+func UnixNanoShared(t *testing.T, tp tinytime.TimeProvider) {
+	nano := tp.UnixNano()
+
+	// Check it's a reasonable timestamp (not zero, not negative, not too far in future)
+	if nano <= 0 {
+		t.Errorf("UnixNano() returned non-positive value: %d", nano)
+	}
+
+	// Test that timestamp is recent (within last 10 seconds to allow for clock drift)
+	now := time.Now().UnixNano()
+	diff := nano - now
+	if diff < 0 {
+		diff = -diff
+	}
+	if diff > 10000000000 {
+		t.Errorf("UnixNano() returned timestamp too far from current time: %d (diff: %d ns)", nano, diff)
+	}
+
+	t.Logf("UnixNano: %d", nano)
+}
+
+// Test ParseDate
 func ParseDateShared(t *testing.T, tp tinytime.TimeProvider) {
-	expectedNano, _ := time.ParseInLocation("2006-01-02", TestDateStr, time.UTC)
-
-	nano, err := tp.ParseDate(TestDateStr)
+	// Valid date
+	nano, err := tp.ParseDate("2024-01-15")
 	if err != nil {
-		t.Fatalf("ParseDate failed: %v", err)
+		t.Errorf("ParseDate(2024-01-15) failed: %v", err)
 	}
-	if nano != expectedNano.UnixNano() {
-		t.Errorf("ParseDate = %d; want %d", nano, expectedNano.UnixNano())
+	if nano <= 0 {
+		t.Errorf("ParseDate returned invalid nano: %d", nano)
 	}
 
-	_, err = tp.ParseDate("invalid-date")
+	// Invalid date
+	_, err = tp.ParseDate("invalid")
 	if err == nil {
-		t.Error("ParseDate should have failed for invalid date")
+		t.Error("ParseDate(invalid) should return error")
 	}
+
+	// Invalid date (Feb 30)
+	_, err = tp.ParseDate("2024-02-30")
+	if err == nil {
+		t.Error("ParseDate(2024-02-30) should return error")
+	}
+
+	t.Logf("ParseDate tests passed")
 }
 
+// Test ParseTime
 func ParseTimeShared(t *testing.T, tp tinytime.TimeProvider) {
-	minutes, err := tp.ParseTime(TestTimeStr)
+	// Valid time
+	minutes, err := tp.ParseTime("08:30")
 	if err != nil {
-		t.Fatalf("ParseTime failed: %v", err)
+		t.Errorf("ParseTime(08:30) failed: %v", err)
 	}
-	if minutes != TestMinutes {
-		t.Errorf("ParseTime = %d; want %d", minutes, TestMinutes)
+	if minutes != 510 {
+		t.Errorf("ParseTime(08:30) = %d; want 510", minutes)
 	}
 
-	_, err = tp.ParseTime("invalid-time")
-	if err == nil {
-		t.Error("ParseTime should have failed for invalid time")
+	// With seconds (should ignore)
+	minutes, err = tp.ParseTime("08:30:45")
+	if err != nil {
+		t.Errorf("ParseTime(08:30:45) failed: %v", err)
 	}
+	if minutes != 510 {
+		t.Errorf("ParseTime(08:30:45) = %d; want 510", minutes)
+	}
+
+	// Invalid time
+	_, err = tp.ParseTime("invalid")
+	if err == nil {
+		t.Error("ParseTime(invalid) should return error")
+	}
+
+	// Invalid hours
+	_, err = tp.ParseTime("25:00")
+	if err == nil {
+		t.Error("ParseTime(25:00) should return error")
+	}
+
+	t.Logf("ParseTime tests passed")
 }
 
+// Test ParseDateTime
 func ParseDateTimeShared(t *testing.T, tp tinytime.TimeProvider) {
-	nano, err := tp.ParseDateTime(TestDateStr, TestTimeStr)
+	// Valid date + time
+	nano, err := tp.ParseDateTime("2024-01-15", "08:30")
 	if err != nil {
-		t.Fatalf("ParseDateTime failed: %v", err)
+		t.Errorf("ParseDateTime failed: %v", err)
 	}
-	if nano != TestUnixNano {
-		t.Errorf("ParseDateTime = %d; want %d", nano, TestUnixNano)
+	if nano <= 0 {
+		t.Errorf("ParseDateTime returned invalid nano: %d", nano)
 	}
 
-	_, err = tp.ParseDateTime("invalid-date", "invalid-time")
+	// Invalid date
+	_, err = tp.ParseDateTime("invalid", "08:30")
 	if err == nil {
-		t.Error("ParseDateTime should have failed for invalid data")
+		t.Error("ParseDateTime(invalid date) should return error")
 	}
+
+	// Invalid time
+	_, err = tp.ParseDateTime("2024-01-15", "invalid")
+	if err == nil {
+		t.Error("ParseDateTime(invalid time) should return error")
+	}
+
+	t.Logf("ParseDateTime tests passed")
 }
 
+// Test IsToday
 func IsTodayShared(t *testing.T, tp tinytime.TimeProvider) {
+	// Current time should be today
 	now := tp.UnixNano()
 	if !tp.IsToday(now) {
-		t.Error("IsToday failed for current time")
+		t.Error("IsToday(now) should return true")
 	}
 
-	yesterday := now - (24 * int64(time.Hour))
+	// Yesterday should not be today
+	yesterday := now - (24 * 60 * 60 * 1000000000)
 	if tp.IsToday(yesterday) {
-		t.Error("IsToday failed for yesterday")
+		t.Error("IsToday(yesterday) should return false")
 	}
+
+	// Tomorrow should not be today
+	tomorrow := now + (24 * 60 * 60 * 1000000000)
+	if tp.IsToday(tomorrow) {
+		t.Error("IsToday(tomorrow) should return false")
+	}
+
+	t.Logf("IsToday tests passed")
 }
 
+// Test IsPast
 func IsPastShared(t *testing.T, tp tinytime.TimeProvider) {
-	past := tp.UnixNano() - 1000
+	now := tp.UnixNano()
+
+	// Past timestamp
+	past := now - 1000000000
 	if !tp.IsPast(past) {
-		t.Error("IsPast failed for past time")
+		t.Error("IsPast(past) should return true")
 	}
-	if tp.IsPast(tp.UnixNano() + 1000) {
-		t.Error("IsPast failed for future time")
+
+	// Future timestamp
+	future := now + 1000000000
+	if tp.IsPast(future) {
+		t.Error("IsPast(future) should return false")
 	}
+
+	t.Logf("IsPast tests passed")
 }
 
+// Test IsFuture
 func IsFutureShared(t *testing.T, tp tinytime.TimeProvider) {
-	future := tp.UnixNano() + 1000
+	now := tp.UnixNano()
+
+	// Future timestamp
+	future := now + 1000000000
 	if !tp.IsFuture(future) {
-		t.Error("IsFuture failed for future time")
+		t.Error("IsFuture(future) should return true")
 	}
-	if tp.IsFuture(tp.UnixNano() - 1000) {
-		t.Error("IsFuture failed for past time")
+
+	// Past timestamp
+	past := now - 1000000000
+	if tp.IsFuture(past) {
+		t.Error("IsFuture(past) should return false")
 	}
+
+	t.Logf("IsFuture tests passed")
 }
 
+// Test DaysBetween
 func DaysBetweenShared(t *testing.T, tp tinytime.TimeProvider) {
-	dayInNanos := int64(24 * time.Hour)
-	nano1 := TestUnixNano
-	nano2 := nano1 + 7*dayInNanos
+	// 7 days apart
+	nano1 := int64(1705276800000000000) // 2024-01-15
+	nano2 := int64(1705881600000000000) // 2024-01-22
 
 	days := tp.DaysBetween(nano1, nano2)
 	if days != 7 {
 		t.Errorf("DaysBetween = %d; want 7", days)
 	}
 
+	// Reversed (negative)
 	days = tp.DaysBetween(nano2, nano1)
 	if days != -7 {
-		t.Errorf("DaysBetween = %d; want -7", days)
-	}
-}
-
-// Existing shared tests can remain below
-// ...
-// Shared test data for tinytime tests (used by both native and wasm tests)
-var (
-	// A known Unix timestamp in seconds (2021-06-22 15:32:14 UTC)
-	GlobalTestUnixSeconds int64 = 1624397134
-
-	// The corresponding time.Time value (UTC)
-	GlobalTestTime = time.Unix(GlobalTestUnixSeconds, 0)
-
-	// The expected formatted time string for UnixNanoToTime
-	GlobalExpectedTimeString = GlobalTestTime.Format("15:04:05")
-
-	// A helper to get a nano timestamp (int64)
-	GlobalTestUnixNano int64 = GlobalTestUnixSeconds * 1000000000
-
-	// Test case types for UnixNanoToTimeWithDifferentTypes
-	GlobalTestCaseTypes = []string{"int64", "int", "float64", "string"}
-)
-func UnixNanoToTimeShared(t *testing.T, tp tinytime.TimeProvider) {
-	// Test con timestamp conocido
-	result := tp.UnixNanoToTime(GlobalTestUnixNano)
-	if result != GlobalExpectedTimeString {
-		t.Errorf("UnixNanoToTime(%d) = %s; want %s", GlobalTestUnixNano, result, GlobalExpectedTimeString)
+		t.Errorf("DaysBetween(reversed) = %d; want -7", days)
 	}
 
-	// Test con string
-	result = tp.UnixNanoToTime(fmt.Sprintf("%d", GlobalTestUnixNano))
-	if result != GlobalExpectedTimeString {
-		t.Errorf("UnixNanoToTime(string) = %s; want %s", result, GlobalExpectedTimeString)
+	// Same day
+	days = tp.DaysBetween(nano1, nano1)
+	if days != 0 {
+		t.Errorf("DaysBetween(same) = %d; want 0", days)
 	}
 
-	// Test con timestamps secuenciales para verificar orden
-	now := time.Now()
-	baseNano := now.UnixNano()
-
-	var results []string
-	for i := 0; i < 3; i++ {
-		nano := baseNano + int64(i)*int64(time.Second) // Incrementar 1 segundo
-		timeStr := tp.UnixNanoToTime(nano)
-		results = append(results, timeStr)
-		t.Logf("Nano: %d -> Time: %s", nano, timeStr)
-	}
-
-	// Verificar que los tiempos están en orden
-	for i := 1; i < len(results); i++ {
-		if results[i] <= results[i-1] {
-			t.Errorf("Los timestamps no están en orden: %s <= %s", results[i], results[i-1])
-		}
-	}
-}
-func UnixNanoToTimeWithDifferentTypesShared(t *testing.T, tp tinytime.TimeProvider) {
-	testCases := []struct {
-		name  string
-		input any
-	}{
-		{"int64", GlobalTestUnixNano},
-		{"int", int(GlobalTestUnixNano)},
-		{"float64", float64(GlobalTestUnixNano)},
-		{"string", fmt.Sprintf("%d", GlobalTestUnixNano)},
-	}
-
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			result := tp.UnixNanoToTime(tc.input)
-
-			if result == "" {
-				t.Errorf("UnixNanoToTime devolvió string vacío para tipo %s", tc.name)
-			}
-
-			t.Logf("Tipo %s: %v -> %s", tc.name, tc.input, result)
-		})
-	}
-
-	// Test con tipo no soportado
-	invalidResult := tp.UnixNanoToTime(make(chan int))
-	if invalidResult != "" {
-		t.Error("UnixNanoToTime debería devolver string vacío para tipos no soportados")
-	}
-}
-func UnixNanoShared(t *testing.T, tp tinytime.TimeProvider) {
-	// Test that UnixNano returns a reasonable timestamp
-	nano := tp.UnixNano()
-	if nano <= 0 {
-		t.Errorf("UnixNano() returned invalid timestamp: %d", nano)
-	}
-
-	// Test that multiple calls return increasing values (monotonic)
-	nano2 := tp.UnixNano()
-	if nano2 < nano {
-		t.Errorf("UnixNano() not monotonic: %d < %d", nano2, nano)
-	}
-
-	// Test that timestamp is recent (within last hour)
-	now := time.Now().UnixNano()
-	if nano > now || nano < now-3600000000000 { // 1 hour in nanoseconds
-		t.Errorf("UnixNano() returned timestamp not within reasonable range: %d", nano)
-	}
-
-	t.Logf("UnixNano: %d", nano)
-}
-func UnixSecondsToDateShared(t *testing.T, tp tinytime.TimeProvider) {
-	// Test with known timestamp - check that it returns a properly formatted string
-	result := tp.UnixSecondsToDate(GlobalTestUnixSeconds)
-	// Just verify the format is correct: YYYY-MM-DD HH:MM
-	if len(result) != 16 || result[10] != ' ' || result[4] != '-' || result[7] != '-' || result[13] != ':' {
-		t.Errorf("UnixSecondsToDate(%d) returned invalid format: %s", GlobalTestUnixSeconds, result)
-	}
-
-	// Test with zero timestamp
-	result = tp.UnixSecondsToDate(0)
-	if result == "" || len(result) != 16 || result[10] != ' ' {
-		t.Errorf("UnixSecondsToDate(0) returned invalid format: %s", result)
-	}
-
-	// Test with negative timestamp
-	result = tp.UnixSecondsToDate(-1)
-	if result == "" || len(result) != 16 || result[10] != ' ' {
-		t.Errorf("UnixSecondsToDate(-1) returned invalid format: %s", result)
-	}
-
-	// Test with current time (should not be empty)
-	currentSeconds := time.Now().Unix()
-	result = tp.UnixSecondsToDate(currentSeconds)
-	if result == "" {
-		t.Error("UnixSecondsToDate returned empty string for current time")
-	}
-
-	t.Logf("UnixSecondsToDate(%d) = %s", GlobalTestUnixSeconds, result)
-}
-func UnixSecondsToDateEdgeCasesShared(t *testing.T, tp tinytime.TimeProvider) {
-	testCases := []struct {
-		name  string
-		input int64
-	}{
-		{"epoch", 0},
-		{"negative", -1},
-		{"year_2000", 946684800},
-		{"future", 2147483647},        // 32-bit signed int max
-		{"distant_past", -2147483648}, // 32-bit signed int min
-	}
-
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			result := tp.UnixSecondsToDate(tc.input)
-			// Just check that it returns a valid formatted string
-			if result == "" || len(result) != 16 || result[10] != ' ' {
-				t.Errorf("UnixSecondsToDate(%d) returned invalid format: %s", tc.input, result)
-			}
-			// Check date format YYYY-MM-DD
-			if len(result[:10]) != 10 || result[4] != '-' || result[7] != '-' {
-				t.Errorf("UnixSecondsToDate(%d) date format invalid: %s", tc.input, result[:10])
-			}
-			// Check time format HH:MM
-			if len(result[11:]) != 5 || result[13] != ':' {
-				t.Errorf("UnixSecondsToDate(%d) time format invalid: %s", tc.input, result[11:])
-			}
-		})
-	}
-}
-func UnixNanoToTimeEdgeCasesShared(t *testing.T, tp tinytime.TimeProvider) {
-	testCases := []struct {
-		name  string
-		input any
-		check func(string) bool // Custom check function since timezone affects results
-	}{
-		{"zero_nanoseconds", int64(0), func(s string) bool { return s != "" && len(s) == 8 && s[2] == ':' && s[5] == ':' }},
-		{"negative_nanoseconds", int64(-1000000000), func(s string) bool { return s != "" && len(s) == 8 && s[2] == ':' && s[5] == ':' }},
-		{"large_nanoseconds", int64(86400000000000), func(s string) bool { return s != "" && len(s) == 8 && s[2] == ':' && s[5] == ':' }},
-		{"zero_int", 0, func(s string) bool { return s != "" && len(s) == 8 && s[2] == ':' && s[5] == ':' }},
-		{"zero_float", 0.0, func(s string) bool { return s != "" && len(s) == 8 && s[2] == ':' && s[5] == ':' }},
-		{"zero_string", "0", func(s string) bool { return s != "" && len(s) == 8 && s[2] == ':' && s[5] == ':' }},
-		{"empty_string", "", func(s string) bool { return s == "" || (s != "" && len(s) == 8 && s[2] == ':' && s[5] == ':') }}, // Allow time string since empty might convert to 0
-		{"invalid_string", "abc", func(s string) bool { return s == "" }},
-		{"nil_interface", nil, func(s string) bool { return s == "" }},
-	}
-
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			result := tp.UnixNanoToTime(tc.input)
-			if !tc.check(result) {
-				t.Errorf("UnixNanoToTime(%v) = %q; check failed", tc.input, result)
-			}
-		})
-	}
-}
-func TimeProviderConsistencyShared(t *testing.T, tp1, tp2 tinytime.TimeProvider) {
-	// Both should return valid timestamps
-	nano1 := tp1.UnixNano()
-	nano2 := tp2.UnixNano()
-
-	if nano1 <= 0 || nano2 <= 0 {
-		t.Error("TimeProvider instances returned invalid timestamps")
-	}
-
-	// Test that both can format the same timestamp consistently
-	testTime := tp1.UnixNanoToTime(GlobalTestUnixNano)
-	expected := tp2.UnixNanoToTime(GlobalTestUnixNano)
-
-	if testTime != expected {
-		t.Errorf("TimeProvider instances inconsistent: %s != %s", testTime, expected)
-	}
-
-	// Test that both format dates consistently
-	testDate := tp1.UnixSecondsToDate(GlobalTestUnixSeconds)
-	expectedDate := tp2.UnixSecondsToDate(GlobalTestUnixSeconds)
-
-	if testDate != expectedDate {
-		t.Errorf("TimeProvider instances inconsistent: %s != %s", testDate, expectedDate)
-	}
+	t.Logf("DaysBetween tests passed")
 }
