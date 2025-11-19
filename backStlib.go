@@ -4,7 +4,7 @@
 package tinytime
 
 import (
-	"fmt"
+	. "github.com/cdvelop/tinystring"
 	"strings"
 	"time"
 )
@@ -40,7 +40,7 @@ func (ts *timeServer) FormatTime(value any) string {
 	case int16: // Minutes since midnight
 		hours := v / 60
 		minutes := v % 60
-		return fmt.Sprintf("%02d:%02d", hours, minutes)
+		return Fmt("%02d:%02d", hours, minutes)
 	case string:
 		if strings.Count(v, ":") >= 1 {
 			return v

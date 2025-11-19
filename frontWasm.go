@@ -4,10 +4,7 @@
 package tinytime
 
 import (
-	"fmt"
-	"strings"
 	"syscall/js"
-	"time"
 
 	. "github.com/cdvelop/tinystring"
 )
@@ -37,7 +34,8 @@ func (tc *timeClient) FormatDate(value any) string {
 		jsDate := tc.dateCtor.New(float64(v) / 1e6)
 		return jsDate.Call("toISOString").String()[0:10]
 	case string:
-		if _, err := time.Parse("2006-01-02", v); err == nil {
+		// Validate date format: YYYY-MM-DD (10 chars with dashes at positions 4 and 7)
+		if len(v) == 10 && v[4] == '-' && v[7] == '-' {
 			return v
 		}
 	}
@@ -57,7 +55,7 @@ func (tc *timeClient) FormatTime(value any) string {
 		minutes := v % 60
 		return Fmt("%02d:%02d", hours, minutes)
 	case string:
-		if strings.Count(v, ":") >= 1 {
+		if Count(v, ":") >= 1 {
 			return v
 		}
 	}
@@ -71,7 +69,8 @@ func (tc *timeClient) FormatDateTime(value any) string {
 		iso := jsDate.Call("toISOString").String()
 		return iso[0:10] + " " + iso[11:19]
 	case string:
-		if _, err := time.Parse("2006-01-02 15:04:05", v); err == nil {
+		// Validate datetime format: YYYY-MM-DD HH:MM:SS (19 chars)
+		if len(v) == 19 && v[4] == '-' && v[7] == '-' && v[10] == ' ' && v[13] == ':' && v[16] == ':' {
 			return v
 		}
 	}
@@ -79,15 +78,14 @@ func (tc *timeClient) FormatDateTime(value any) string {
 }
 
 func (tc *timeClient) ParseDate(dateStr string) (int64, error) {
-	// Parse using time.Parse to validate format strictly
-	_, err := time.Parse("2006-01-02", dateStr)
-	if err != nil {
-		return 0, fmt.Errorf("invalid date format: %s", dateStr)
+	// Validate format: YYYY-MM-DD (10 chars with dashes at positions 4 and 7)
+	if len(dateStr) != 10 || dateStr[4] != '-' || dateStr[7] != '-' {
+		return 0, Errf("invalid date format: %s (expected YYYY-MM-DD)", dateStr)
 	}
 
 	jsDate := tc.dateCtor.New(dateStr + "T00:00:00Z")
 	if jsDate.Call("toString").String() == "Invalid Date" {
-		return 0, fmt.Errorf("invalid date format: %s", dateStr)
+		return 0, Errf("invalid date format: %s", dateStr)
 	}
 
 	// Verify date components match (JS Date auto-corrects invalid dates like Feb 30)
@@ -96,7 +94,7 @@ func (tc *timeClient) ParseDate(dateStr string) (int64, error) {
 	day := jsDate.Call("getUTCDate").Int()
 	expected := Fmt("%04d-%02d-%02d", year, month, day)
 	if expected != dateStr {
-		return 0, fmt.Errorf("invalid date: %s (auto-corrected to %s)", dateStr, expected)
+		return 0, Errf("invalid date: %s (auto-corrected to %s)", dateStr, expected)
 	}
 
 	ms := jsDate.Call("getTime").Float()
@@ -114,7 +112,7 @@ func (tc *timeClient) ParseDateTime(dateStr, timeStr string) (int64, error) {
 	isoStr := dateStr + "T" + timeStr + "Z"
 	jsDate := tc.dateCtor.New(isoStr)
 	if jsDate.Call("toString").String() == "Invalid Date" {
-		return 0, fmt.Errorf("invalid date/time format: %s %s", dateStr, timeStr)
+		return 0, Errf("invalid date/time format: %s %s", dateStr, timeStr)
 	}
 	ms := jsDate.Call("getTime").Float()
 	return int64(ms) * 1000000, nil
