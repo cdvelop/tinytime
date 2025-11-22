@@ -9,32 +9,31 @@ A minimal, portable time utility for Go and TinyGo with WebAssembly support. Aut
 
 ```go
 import "github.com/cdvelop/tinytime"
-import "fmt"
 
 func main() {
     tp := tinytime.NewTimeProvider()
 
     // Get current Unix timestamp in nanoseconds
     nano := tp.UnixNano()
-    fmt.Println("Current time:", nano)
+    println("Current time:", nano)
 
     // Format dates and times
     date := tp.FormatDate(nano)
-    fmt.Println("Date:", date) // "2024-01-15"
+    println("Date:", date) // "2024-01-15"
 
     timeStr := tp.FormatTime(int16(510)) // 8:30 in minutes
-    fmt.Println("Time:", timeStr) // "08:30"
+    println("Time:", timeStr) // "08:30"
 
     // Parse date and time strings
     parsedNano, err := tp.ParseDate("2024-01-15")
     if err != nil {
         panic(err)
     }
-    fmt.Println("Parsed Nano:", parsedNano)
+    println("Parsed Nano:", parsedNano)
 
     // Perform date calculations
     isToday := tp.IsToday(nano)
-    fmt.Println("Is Today?", isToday)
+    println("Is Today?", isToday)
 }
 ```
 
