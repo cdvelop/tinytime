@@ -150,3 +150,47 @@ func (tc *timeClient) IsFuture(nano int64) bool {
 func (tc *timeClient) DaysBetween(nano1, nano2 int64) int {
 	return daysBetween(nano1, nano2)
 }
+
+// wasmTimer implements Timer for WASM using setTimeout
+type wasmTimer struct {
+	id     int
+	active bool
+	jsFunc js.Func // Store to release later
+	f      func()  // Store callback to execute
+}
+
+func (wt *wasmTimer) Stop() bool {
+	if !wt.active {
+		return false
+	}
+	js.Global().Call("clearTimeout", wt.id)
+	wt.active = false
+	wt.jsFunc.Release() // Free memory
+	return true
+}
+
+func (wt *wasmTimer) fire() {
+	if !wt.active {
+		return
+	}
+	wt.active = false
+	wt.jsFunc.Release() // Free memory after execution
+	if wt.f != nil {
+		wt.f()
+	}
+}
+
+func (tc *timeClient) AfterFunc(milliseconds int, f func()) Timer {
+	wt := &wasmTimer{
+		active: true,
+		f:      f,
+	}
+
+	wt.jsFunc = js.FuncOf(func(this js.Value, args []js.Value) any {
+		wt.fire()
+		return nil
+	})
+
+	wt.id = js.Global().Call("setTimeout", wt.jsFunc, milliseconds).Int()
+	return wt
+}

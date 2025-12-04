@@ -115,3 +115,17 @@ func (ts *timeServer) IsFuture(nano int64) bool {
 func (ts *timeServer) DaysBetween(nano1, nano2 int64) int {
 	return daysBetween(nano1, nano2)
 }
+
+// timerWrapper wraps time.Timer to implement Timer interface
+type timerWrapper struct {
+	timer *time.Timer
+}
+
+func (tw *timerWrapper) Stop() bool {
+	return tw.timer.Stop()
+}
+
+func (ts *timeServer) AfterFunc(milliseconds int, f func()) Timer {
+	t := time.AfterFunc(time.Duration(milliseconds)*time.Millisecond, f)
+	return &timerWrapper{timer: t}
+}

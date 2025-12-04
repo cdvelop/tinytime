@@ -42,4 +42,15 @@ type TimeProvider interface {
 
 	// DaysBetween calculates the number of full days between two UnixNano timestamps.
 	DaysBetween(nano1, nano2 int64) int
+
+	// AfterFunc waits for the specified milliseconds then calls f.
+	// Returns a Timer that can be used to cancel the call.
+	// WARNING: In WASM, callback runs in JS event loop - keep it lightweight.
+	AfterFunc(milliseconds int, f func()) Timer
+}
+
+// Timer represents a cancelable timer
+type Timer interface {
+	// Stop prevents the timer from firing. Returns true if the timer was active.
+	Stop() bool
 }

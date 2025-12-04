@@ -140,6 +140,25 @@ Calculates the number of full days between two UnixNano timestamps.
 
 ---
 
+### Timers
+
+#### `AfterFunc(milliseconds int, f func()) Timer`
+Waits for the specified milliseconds then calls `f`. Returns a `Timer` that can be used to cancel the call.
+
+**Note:** In WASM environments, the callback runs in the JavaScript event loop. Keep callbacks lightweight to avoid blocking the UI.
+
+```go
+// Start a timer
+timer := tp.AfterFunc(1000, func() {
+    println("1 second passed!")
+})
+
+// Stop the timer before it fires
+timer.Stop()
+```
+
+---
+
 ## WebAssembly Usage
 
 When compiled for WebAssembly (`GOOS=js GOARCH=wasm`), tinytime automatically uses JavaScript's native Date APIs instead of bundling Go's `time` package.
